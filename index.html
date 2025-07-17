@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>최단유 DVD</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
+    canvas {
+      display: block;
+    }
+    .controls {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px #000;
+    }
+    .controls button {
+      font-size: 32px;
+      padding: 10px 20px;
+      margin: 0 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <button onclick="addImage()">+</button>
+    <button onclick="removeImage()">-</button>
+  </div>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const image = new Image();
+    image.src = 'choi.png';  // 웹사이트에 올린 이미지 파일 이름
+
+    const images = [];
+
+    function randomVelocity() {
+      let v = 3 + Math.random() * 2;
+      return Math.random() < 0.5 ? -v : v;
+    }
+
+    function addImage() {
+      const size = 100;
+      images.push({
+        x: Math.random() * (width - size),
+        y: Math.random() * (height - size),
+        vx: randomVelocity(),
+        vy: randomVelocity(),
+        size: size
+      });
+    }
+
+    function removeImage() {
+      if (images.length > 0) images.pop();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+
+      // 위치 업데이트 및 벽 튕김
+      for (let img of images) {
+        img.x += img.vx;
+        img.y += img.vy;
+
+        if (img.x <= 0 || img.x + img.size >= width) img.vx *= -1;
+        if (img.y <= 0 || img.y + img.size >= height) img.vy *= -1;
+      }
+
+      // 이미지끼리 충돌 처리
+      for (let i = 0; i < images.length; i++) {
+        for (let j = i + 1; j < images.length; j++) {
+          let a = images[i], b = images[j];
+          let dx = b.x - a.x;
+          let dy = b.y - a.y;
+          let dist = Math.hypot(dx, dy);
+          if (dist < a.size) {
+            // 간단한 반사 (속도 교환)
+            let tempVx = a.vx;
+            let tempVy = a.vy;
+            a.vx = b.vx;
+            a.vy = b.vy;
+            b.vx = tempVx;
+            b.vy = tempVy;
+          }
+        }
+      }
+
+      // 이미지 그리기
+      for (let img of images) {
+        ctx.drawImage(image, img.x, img.y, img.size, img.size);
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    image.onload = () => {
+      addImage(); // 첫 이미지 자동 생성
+      draw();
+    };
+  </script>
+</body>
+</html>
