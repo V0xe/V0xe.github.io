@@ -537,16 +537,25 @@
       
       // DVD 그리기
       for (let img of images) {
-        ctx.fillStyle = img.color;
-        ctx.beginPath();
-        ctx.arc(img.x + img.size/2, img.y + img.size/2, img.size/2, 0, Math.PI * 2);
-        ctx.fill();
-        
         if (useCustomImage) {
           // choi.png 이미지 사용
+          ctx.save();
+          
+          if (rainbowMode) {
+            // 무지개 효과를 위한 색상 필터
+            const hue = img.hue;
+            ctx.filter = `hue-rotate(${hue}deg) saturate(1.5) brightness(1.1)`;
+          }
+          
           ctx.drawImage(choiImage, img.x, img.y, img.size, img.size);
+          ctx.restore();
         } else {
           // 이모지 사용
+          ctx.fillStyle = img.color;
+          ctx.beginPath();
+          ctx.arc(img.x + img.size/2, img.y + img.size/2, img.size/2, 0, Math.PI * 2);
+          ctx.fill();
+          
           ctx.font = `${img.size * 0.6}px Arial`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -593,6 +602,12 @@
         if (useCustomImage) {
           ctx.save();
           ctx.globalAlpha = 0.5;
+          
+          if (rainbowMode) {
+            // 드래그 미리보기에도 무지개 효과 적용
+            ctx.filter = `hue-rotate(${rainbowHue}deg) saturate(1.5) brightness(1.1)`;
+          }
+          
           ctx.drawImage(choiImage, dragStart.x - defaultSize/2, dragStart.y - defaultSize/2, defaultSize, defaultSize);
           ctx.restore();
         } else {
