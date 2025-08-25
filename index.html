@@ -149,18 +149,18 @@
       box-shadow: 0 0 20px rgba(255, 107, 107, 0.5) !important;
     }
     
-    .gravity-btn {
-      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
-      border-color: rgba(139, 92, 246, 0.3) !important;
+    .drawing-btn {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+      border-color: rgba(245, 158, 11, 0.3) !important;
     }
     
-    .gravity-btn:hover {
-      background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%) !important;
-      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3) !important;
+    .drawing-btn:hover {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3) !important;
     }
     
-    .gravity-btn.active {
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+    .drawing-btn.active {
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.5) !important;
     }
     
     .slider {
@@ -193,13 +193,6 @@
       width: 1px;
       height: 24px;
       background: rgba(255, 255, 255, 0.1);
-    }
-    
-    .drag-preview {
-      position: absolute;
-      pointer-events: none;
-      z-index: 5;
-      opacity: 0.7;
     }
     
     .instruction {
@@ -243,12 +236,12 @@
     
     <div class="control-group">
       <button class="rainbow-btn" id="rainbowBtn" onclick="toggleRainbow()">🌈</button>
-      <button class="gravity-btn" id="gravityBtn" onclick="toggleGravity()">🌍</button>
+      <button class="drawing-btn" id="drawingBtn" onclick="toggleDrawing()">✏️</button>
     </div>
   </div>
   
   <div class="instruction">
-    드래그로 DVD 던지기 | DVD 클릭으로 폭발 효과
+    ✏️ 버튼으로 그림 그리기 모드 on/off
   </div>
   
   <canvas id="canvas"></canvas>
@@ -262,13 +255,13 @@
     let speedMultiplier = 1;
     let defaultSize = 80;
     let rainbowMode = false;
-    let gravityEnabled = false;
+    let drawingMode = false;
     let rainbowHue = 0;
     
-    // 드래그 상태
-    let isDragging = false;
-    let dragStart = { x: 0, y: 0 };
-    let dragCurrent = { x: 0, y: 0 };
+    // 그림 그리기
+    let isDrawing = false;
+    let drawnLines = [];
+    let currentLine = [];
     
     function resize() {
       width = canvas.width = window.innerWidth;
@@ -278,7 +271,6 @@
     resize();
 
     const images = [];
-    const particles = [];
     
     // 이미지 로드
     const choiImage = new Image();
@@ -295,39 +287,6 @@
     };
     
     choiImage.src = 'choi.png';
-    
-    // 파티클 클래스
-    class Particle {
-      constructor(x, y, vx, vy, color, size) {
-        this.x = x;
-        this.y = y;
-        this.vx = vx;
-        this.vy = vy;
-        this.color = color;
-        this.size = size;
-        this.life = 1;
-        this.decay = 0.02;
-      }
-      
-      update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.vy += 0.1; // 중력
-        this.vx *= 0.99; // 마찰
-        this.life -= this.decay;
-        this.size *= 0.99;
-      }
-      
-      draw() {
-        ctx.save();
-        ctx.globalAlpha = this.life;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
     
     function randomVelocity() {
       let v = (3 + Math.random() * 2) * speedMultiplier;
@@ -355,22 +314,11 @@
       return `rgb(${Math.round((r + m) * 255)}, ${Math.round((g + m) * 255)}, ${Math.round((b + m) * 255)})`;
     }
     
-    function createExplosion(x, y, color) {
-      for (let i = 0; i < 15; i++) {
-        const angle = (Math.PI * 2 * i) / 15;
-        const speed = 2 + Math.random() * 4;
-        const vx = Math.cos(angle) * speed;
-        const vy = Math.sin(angle) * speed;
-        const size = 2 + Math.random() * 4;
-        particles.push(new Particle(x, y, vx, vy, color, size));
-      }
-    }
-    
-    function addImage(x, y, vx, vy) {
-      x = x || Math.random() * (width - defaultSize);
-      y = y || Math.random() * (height - defaultSize);
-      vx = vx || randomVelocity();
-      vy = vy || randomVelocity();
+    function addImage() {
+      const x = Math.random() * (width - defaultSize);
+      const y = Math.random() * (height - defaultSize);
+      const vx = randomVelocity();
+      const vy = randomVelocity();
       
       images.push({
         x: x,
@@ -394,10 +342,56 @@
       btn.classList.toggle('active', rainbowMode);
     }
     
-    function toggleGravity() {
-      gravityEnabled = !gravityEnabled;
-      const btn = document.getElementById('gravityBtn');
-      btn.classList.toggle('active', gravityEnabled);
+    function toggleDrawing() {
+      drawingMode = !drawingMode;
+      const btn = document.getElementById('drawingBtn');
+      btn.classList.toggle('active', drawingMode);
+      
+      // 그리기 모드 변경 시 커서 스타일 변경
+      canvas.style.cursor = drawingMode ? 'crosshair' : 'default';
+      
+      // 그리기 모드 해제 시 현재 그리던 선 완료
+      if (!drawingMode && currentLine.length > 0) {
+        drawnLines.push([...currentLine]);
+        currentLine = [];
+      }
+    }
+    
+    // 선분과 원의 충돌 검사
+    function lineCircleCollision(x1, y1, x2, y2, cx, cy, radius) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const fx = x1 - cx;
+      const fy = y1 - cy;
+      
+      const a = dx * dx + dy * dy;
+      const b = 2 * (fx * dx + fy * dy);
+      const c = fx * fx + fy * fy - radius * radius;
+      
+      const discriminant = b * b - 4 * a * c;
+      
+      if (discriminant < 0) return null;
+      
+      const t1 = (-b - Math.sqrt(discriminant)) / (2 * a);
+      const t2 = (-b + Math.sqrt(discriminant)) / (2 * a);
+      
+      // 선분 범위 내에서 가장 가까운 교점 찾기
+      let t = null;
+      if (t1 >= 0 && t1 <= 1) t = t1;
+      else if (t2 >= 0 && t2 <= 1) t = t2;
+      
+      if (t !== null) {
+        const px = x1 + t * dx;
+        const py = y1 + t * dy;
+        
+        // 법선 벡터 계산
+        const nx = (cx - px) / radius;
+        const ny = (cy - py) / radius;
+        
+        return { x: px, y: py, nx: nx, ny: ny };
+      }
+      
+      return null;
     }
     
     // 이벤트 리스너
@@ -412,53 +406,34 @@
     
     // 마우스 이벤트
     canvas.addEventListener('mousedown', (e) => {
+      if (!drawingMode) return;
+      
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // DVD 클릭 체크
-      for (let i = images.length - 1; i >= 0; i--) {
-        const img = images[i];
-        const dx = x - (img.x + img.size / 2);
-        const dy = y - (img.y + img.size / 2);
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < img.size / 2) {
-          createExplosion(img.x + img.size / 2, img.y + img.size / 2, img.color);
-          images.splice(i, 1);
-          return;
-        }
-      }
-      
-      // 드래그 시작
-      isDragging = true;
-      dragStart = { x, y };
-      dragCurrent = { x, y };
+      isDrawing = true;
+      currentLine = [{ x, y }];
     });
     
     canvas.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
+      if (!drawingMode || !isDrawing) return;
       
       const rect = canvas.getBoundingClientRect();
-      dragCurrent = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      currentLine.push({ x, y });
     });
     
-    canvas.addEventListener('mouseup', (e) => {
-      if (!isDragging) return;
+    canvas.addEventListener('mouseup', () => {
+      if (!drawingMode || !isDrawing) return;
       
-      const rect = canvas.getBoundingClientRect();
-      const endX = e.clientX - rect.left;
-      const endY = e.clientY - rect.top;
-      
-      const vx = (endX - dragStart.x) * 0.1 * speedMultiplier;
-      const vy = (endY - dragStart.y) * 0.1 * speedMultiplier;
-      
-      addImage(dragStart.x - defaultSize / 2, dragStart.y - defaultSize / 2, vx, vy);
-      
-      isDragging = false;
+      if (currentLine.length > 1) {
+        drawnLines.push([...currentLine]);
+      }
+      currentLine = [];
+      isDrawing = false;
     });
     
     function draw() {
@@ -471,12 +446,41 @@
       
       // DVD 위치 업데이트
       for (let img of images) {
-        img.x += img.vx;
-        img.y += img.vy;
+        const newX = img.x + img.vx;
+        const newY = img.y + img.vy;
+        const centerX = newX + img.size / 2;
+        const centerY = newY + img.size / 2;
+        const radius = img.size / 2;
         
-        // 중력 효과
-        if (gravityEnabled) {
-          img.vy += 0.1;
+        // 그려진 선과의 충돌 체크
+        let collided = false;
+        for (let line of drawnLines) {
+          for (let i = 0; i < line.length - 1; i++) {
+            const collision = lineCircleCollision(
+              line[i].x, line[i].y,
+              line[i + 1].x, line[i + 1].y,
+              centerX, centerY, radius
+            );
+            
+            if (collision) {
+              // 반사 벡터 계산
+              const dot = img.vx * collision.nx + img.vy * collision.ny;
+              img.vx = img.vx - 2 * dot * collision.nx;
+              img.vy = img.vy - 2 * dot * collision.ny;
+              
+              // 색상 변경
+              if (!rainbowMode) img.color = randomColor();
+              
+              collided = true;
+              break;
+            }
+          }
+          if (collided) break;
+        }
+        
+        if (!collided) {
+          img.x = newX;
+          img.y = newY;
         }
         
         // 벽 충돌
@@ -502,7 +506,7 @@
         }
       }
       
-      // DVD 충돌 처리
+      // DVD끼리 충돌 처리
       for (let i = 0; i < images.length; i++) {
         for (let j = i + 1; j < images.length; j++) {
           let a = images[i], b = images[j];
@@ -568,55 +572,33 @@
         }
       }
       
-      // 파티클 업데이트 및 그리기
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const particle = particles[i];
-        particle.update();
-        particle.draw();
-        
-        if (particle.life <= 0) {
-          particles.splice(i, 1);
+      // 그려진 선들 그리기
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      for (let line of drawnLines) {
+        if (line.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(line[0].x, line[0].y);
+          for (let i = 1; i < line.length; i++) {
+            ctx.lineTo(line[i].x, line[i].y);
+          }
+          ctx.stroke();
         }
       }
       
-      // 드래그 미리보기
-      if (isDragging) {
-        const dx = dragCurrent.x - dragStart.x;
-        const dy = dragCurrent.y - dragStart.y;
-        
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
+      // 현재 그리는 선 그리기
+      if (drawingMode && currentLine.length > 1) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(dragStart.x, dragStart.y);
-        ctx.lineTo(dragCurrent.x, dragCurrent.y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        
-        // 미리보기 DVD
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.beginPath();
-        ctx.arc(dragStart.x, dragStart.y, defaultSize/2, 0, Math.PI * 2);
-        ctx.fill();
-        
-        if (useCustomImage) {
-          ctx.save();
-          ctx.globalAlpha = 0.5;
-          
-          if (rainbowMode) {
-            // 드래그 미리보기에도 무지개 효과 적용
-            ctx.filter = `hue-rotate(${rainbowHue}deg) saturate(1.5) brightness(1.1)`;
-          }
-          
-          ctx.drawImage(choiImage, dragStart.x - defaultSize/2, dragStart.y - defaultSize/2, defaultSize, defaultSize);
-          ctx.restore();
-        } else {
-          ctx.font = `${defaultSize * 0.6}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-          ctx.fillText('📀', dragStart.x, dragStart.y);
+        ctx.moveTo(currentLine[0].x, currentLine[0].y);
+        for (let i = 1; i < currentLine.length; i++) {
+          ctx.lineTo(currentLine[i].x, currentLine[i].y);
         }
+        ctx.stroke();
       }
       
       requestAnimationFrame(draw);
