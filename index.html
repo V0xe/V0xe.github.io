@@ -6,36 +6,45 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
     
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
     body {
       margin: 0;
       overflow: hidden;
       background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     }
     
     canvas {
       display: block;
       cursor: crosshair;
+      touch-action: none;
     }
     
     .controls {
       position: absolute;
-      top: 24px;
+      top: 12px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 10;
       background: rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(24px);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      padding: 16px 24px;
+      padding: 12px 16px;
       border-radius: 16px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       flex-wrap: wrap;
-      max-width: 90vw;
+      max-width: 95vw;
+      justify-content: center;
     }
     
     .controls::before {
@@ -52,7 +61,7 @@
     
     .title {
       color: rgba(255, 255, 255, 0.9);
-      font-size: 14px;
+      font-size: clamp(12px, 3vw, 14px);
       font-weight: 500;
       letter-spacing: -0.01em;
     }
@@ -60,20 +69,20 @@
     .control-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     
     .control-label {
       color: rgba(255, 255, 255, 0.7);
-      font-size: 12px;
+      font-size: clamp(10px, 2.5vw, 12px);
       font-weight: 400;
       white-space: nowrap;
     }
     
     .controls button {
-      width: 44px;
-      height: 44px;
-      font-size: 20px;
+      width: clamp(36px, 8vw, 44px);
+      height: clamp(36px, 8vw, 44px);
+      font-size: clamp(16px, 4vw, 20px);
       font-weight: 500;
       cursor: pointer;
       background: rgba(255, 255, 255, 0.1);
@@ -86,6 +95,8 @@
       justify-content: center;
       position: relative;
       overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     
     .controls button::before {
@@ -100,20 +111,16 @@
       transition: opacity 0.2s ease;
     }
     
-    .controls button:hover {
+    .controls button:hover, 
+    .controls button:active {
       background: rgba(255, 255, 255, 0.15);
       border-color: rgba(255, 255, 255, 0.25);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      transform: scale(0.95);
     }
     
-    .controls button:hover::before {
+    .controls button:hover::before,
+    .controls button:active::before {
       opacity: 1;
-    }
-    
-    .controls button:active {
-      transform: translateY(0);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
     
     .add-btn {
@@ -121,9 +128,9 @@
       border-color: rgba(16, 185, 129, 0.3) !important;
     }
     
-    .add-btn:hover {
+    .add-btn:hover,
+    .add-btn:active {
       background: linear-gradient(135deg, #34d399 0%, #10b981 100%) !important;
-      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3) !important;
     }
     
     .remove-btn {
@@ -131,18 +138,14 @@
       border-color: rgba(239, 68, 68, 0.3) !important;
     }
     
-    .remove-btn:hover {
+    .remove-btn:hover,
+    .remove-btn:active {
       background: linear-gradient(135deg, #f87171 0%, #ef4444 100%) !important;
-      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3) !important;
     }
     
     .rainbow-btn {
       background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 25%, #45b7d1 50%, #96ceb4 75%, #ffeaa7 100%) !important;
       border-color: rgba(255, 255, 255, 0.3) !important;
-    }
-    
-    .rainbow-btn:hover {
-      box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3) !important;
     }
     
     .rainbow-btn.active {
@@ -154,29 +157,25 @@
       border-color: rgba(245, 158, 11, 0.3) !important;
     }
     
-    .drawing-btn:hover {
-      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
-      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3) !important;
-    }
-    
     .drawing-btn.active {
       box-shadow: 0 0 20px rgba(245, 158, 11, 0.5) !important;
     }
     
     .slider {
-      width: 80px;
+      width: clamp(60px, 15vw, 80px);
       height: 6px;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 3px;
       outline: none;
       appearance: none;
       cursor: pointer;
+      touch-action: manipulation;
     }
     
     .slider::-webkit-slider-thumb {
       appearance: none;
-      width: 16px;
-      height: 16px;
+      width: clamp(14px, 4vw, 18px);
+      height: clamp(14px, 4vw, 18px);
       background: rgba(255, 255, 255, 0.9);
       border-radius: 50%;
       cursor: pointer;
@@ -184,64 +183,121 @@
       transition: all 0.2s ease;
     }
     
-    .slider::-webkit-slider-thumb:hover {
+    .slider::-webkit-slider-thumb:hover,
+    .slider::-webkit-slider-thumb:active {
       background: white;
       transform: scale(1.1);
     }
     
     .separator {
       width: 1px;
-      height: 24px;
+      height: clamp(16px, 4vw, 24px);
       background: rgba(255, 255, 255, 0.1);
     }
     
     .instruction {
       position: absolute;
-      bottom: 24px;
+      bottom: 12px;
       left: 50%;
       transform: translateX(-50%);
       color: rgba(255, 255, 255, 0.5);
-      font-size: 12px;
+      font-size: clamp(10px, 2.5vw, 12px);
       text-align: center;
       background: rgba(0, 0, 0, 0.3);
-      padding: 8px 16px;
+      padding: 6px 12px;
       border-radius: 8px;
       backdrop-filter: blur(8px);
+      max-width: 90vw;
+      line-height: 1.2;
+    }
+    
+    /* 모바일 세로 모드 */
+    @media (orientation: portrait) and (max-width: 768px) {
+      .controls {
+        top: 8px;
+        padding: 8px 12px;
+        gap: 8px;
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .control-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      
+      .title {
+        text-align: center;
+        margin-bottom: 4px;
+      }
+      
+      .separator {
+        display: none;
+      }
+      
+      .instruction {
+        bottom: 8px;
+        font-size: 10px;
+        padding: 4px 8px;
+      }
+    }
+    
+    /* 아주 작은 화면 (모바일 가로) */
+    @media (max-height: 500px) {
+      .controls {
+        top: 4px;
+        padding: 4px 8px;
+        gap: 4px;
+      }
+      
+      .instruction {
+        bottom: 4px;
+        font-size: 9px;
+        padding: 2px 6px;
+      }
+      
+      .title {
+        font-size: 10px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="controls">
     <span class="title">최단유 DVD</span>
-    <div class="separator"></div>
     
-    <div class="control-group">
-      <button class="add-btn" onclick="addImage()">+</button>
-      <button class="remove-btn" onclick="removeImage()">−</button>
-    </div>
-    
-    <div class="separator"></div>
-    
-    <div class="control-group">
-      <span class="control-label">속도</span>
-      <input type="range" class="slider" id="speedSlider" min="0.5" max="5" step="0.1" value="1">
-    </div>
-    
-    <div class="control-group">
-      <span class="control-label">크기</span>
-      <input type="range" class="slider" id="sizeSlider" min="40" max="120" step="5" value="80">
-    </div>
-    
-    <div class="separator"></div>
-    
-    <div class="control-group">
-      <button class="rainbow-btn" id="rainbowBtn" onclick="toggleRainbow()">🌈</button>
-      <button class="drawing-btn" id="drawingBtn" onclick="toggleDrawing()">✏️</button>
+    <div class="control-row">
+      <div class="control-group">
+        <button class="add-btn" onclick="addImage()">+</button>
+        <button class="remove-btn" onclick="removeImage()">−</button>
+      </div>
+      
+      <div class="separator"></div>
+      
+      <div class="control-group">
+        <span class="control-label">속도</span>
+        <input type="range" class="slider" id="speedSlider" min="0.5" max="5" step="0.1" value="1">
+      </div>
+      
+      <div class="control-group">
+        <span class="control-label">크기</span>
+        <input type="range" class="slider" id="sizeSlider" min="40" max="120" step="5" value="80">
+      </div>
+      
+      <div class="separator"></div>
+      
+      <div class="control-group">
+        <button class="rainbow-btn" id="rainbowBtn" onclick="toggleRainbow()">🌈</button>
+        <button class="drawing-btn" id="drawingBtn" onclick="toggleDrawing()">✏️</button>
+      </div>
     </div>
   </div>
   
   <div class="instruction">
-    ✏️ 버튼으로 그림 그리기 모드 on/off
+    모바일: 터치로 그림 그리기 | 데스크톱: ✏️ 버튼으로 그리기 모드
   </div>
   
   <canvas id="canvas"></canvas>
@@ -404,7 +460,49 @@
       images.forEach(img => img.size = defaultSize);
     });
     
-    // 마우스 이벤트
+    // 마우스/터치 이벤트
+    let startX, startY;
+    
+    // 터치 이벤트
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (!drawingMode) return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      
+      isDrawing = true;
+      currentLine = [{ x, y }];
+      startX = x;
+      startY = y;
+    });
+    
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!drawingMode || !isDrawing) return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      
+      currentLine.push({ x, y });
+    });
+    
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      if (!drawingMode || !isDrawing) return;
+      
+      if (currentLine.length > 1) {
+        drawnLines.push([...currentLine]);
+      }
+      currentLine = [];
+      isDrawing = false;
+    });
+    
+    // 마우스 이벤트 (데스크톱)
     canvas.addEventListener('mousedown', (e) => {
       if (!drawingMode) return;
       
@@ -434,6 +532,11 @@
       }
       currentLine = [];
       isDrawing = false;
+    });
+    
+    // 컨텍스트 메뉴 방지 (모바일 롱프레스)
+    canvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
     });
     
     function draw() {
