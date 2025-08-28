@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>랜덤재호</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 90%;
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gacha-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gacha-box {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4em;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(238, 90, 36, 0.4);
+        }
+
+        .gacha-box:hover:not(.opening) {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(238, 90, 36, 0.6);
+        }
+
+        .gacha-box.opening {
+            animation: shake 0.8s ease-in-out, openGlow 0.8s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-8px) rotate(-3deg); }
+            20%, 40%, 60%, 80% { transform: translateX(8px) rotate(3deg); }
+        }
+
+        @keyframes openGlow {
+            0%, 100% { box-shadow: 0 10px 30px rgba(238, 90, 36, 0.4); }
+            50% { box-shadow: 0 0 80px rgba(255, 255, 255, 1); }
+        }
+
+        .result-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: all 0.8s ease;
+        }
+
+        .result-container.show {
+            opacity: 1;
+            animation: resultReveal 1.2s ease-out;
+        }
+
+        @keyframes resultReveal {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.1) rotate(-360deg);
+            }
+            60% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2) rotate(20deg);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            }
+        }
+
+        .result-image {
+            width: 180px;
+            height: 180px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            object-fit: cover;
+            border: 4px solid;
+        }
+
+        .result-text {
+            font-size: 2em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            margin-bottom: 10px;
+        }
+
+        .result-grade {
+            font-size: 1.3em;
+            font-weight: bold;
+            padding: 8px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .common { 
+            background-color: #95a5a6; 
+            border-color: #95a5a6;
+            color: #95a5a6;
+        }
+
+        .uncommon { 
+            background-color: #2ecc71; 
+            border-color: #2ecc71;
+            color: #2ecc71;
+        }
+
+        .rare { 
+            background-color: #3498db; 
+            border-color: #3498db;
+            color: #3498db;
+        }
+
+        .epic { 
+            background-color: #9b59b6; 
+            border-color: #9b59b6;
+            color: #9b59b6;
+        }
+
+        .legendary { 
+            background-color: #ffd700; 
+            border-color: #ffd700;
+            color: #ffd700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+            animation: legendaryGlow 2s ease-in-out infinite alternate;
+        }
+
+        .mythic { 
+            background-color: #e74c3c; 
+            border-color: #e74c3c;
+            color: #e74c3c;
+            box-shadow: 0 0 40px rgba(231, 76, 60, 0.8);
+            animation: mythicGlow 1.5s ease-in-out infinite alternate;
+        }
+
+        .transcendent { 
+            background-color: #0066ff; 
+            border-color: #0066ff;
+            color: #0066ff;
+            box-shadow: 0 0 60px rgba(0, 102, 255, 1);
+            animation: transcendentGlow 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes legendaryGlow {
+            0% { 
+                box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+                filter: brightness(1);
+            }
+            100% { 
+                box-shadow: 0 0 50px rgba(255, 215, 0, 1);
+                filter: brightness(1.2);
+            }
+        }
+
+        @keyframes mythicGlow {
+            0% { 
+                box-shadow: 0 0 40px rgba(231, 76, 60, 0.8);
+                filter: brightness(1);
+            }
+            100% { 
+                box-shadow: 0 0 70px rgba(231, 76, 60, 1);
+                filter: brightness(1.3);
+            }
+        }
+
+        @keyframes transcendentGlow {
+            0% { 
+                box-shadow: 0 0 60px rgba(0, 102, 255, 1);
+                filter: brightness(1);
+            }
+            100% { 
+                box-shadow: 0 0 100px rgba(0, 102, 255, 1);
+                filter: brightness(1.5);
+            }
+        }
+
+        .pull-button {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            border: none;
+            padding: 20px 50px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(68, 160, 141, 0.4);
+            margin: 20px 10px;
+        }
+
+        .pull-button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(68, 160, 141, 0.6);
+        }
+
+        .pull-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .reset-button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            padding: 15px 30px;
+            font-size: 1em;
+            font-weight: bold;
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .probability-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            margin-bottom: 20px;
+        }
+
+        .probability-info h3 {
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+
+        .grade-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .grade-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            position: relative;
+        }
+
+        .grade-info.legendary {
+            background: linear-gradient(45deg, rgba(255, 215, 0, 0.15), rgba(255, 237, 78, 0.1));
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            animation: legendaryPulse 2s ease-in-out infinite;
+        }
+
+        .grade-info.legendary::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+            animation: shimmer 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .grade-info.legendary .grade-color {
+            animation: legendaryOrb 2s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+
+        .grade-info.mythic {
+            background: linear-gradient(45deg, rgba(231, 76, 60, 0.2), rgba(192, 57, 43, 0.15));
+            border: 2px solid rgba(231, 76, 60, 0.4);
+            animation: mythicFlicker 1.5s ease-in-out infinite;
+        }
+
+        .grade-info.mythic::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(231, 76, 60, 0.3), transparent);
+            animation: mythicSweep 2.5s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .grade-info.mythic .grade-color {
+            animation: mythicPulse 1.5s ease-in-out infinite;
+            box-shadow: 0 0 25px rgba(231, 76, 60, 1);
+        }
+
+        .grade-info.transcendent {
+            background: linear-gradient(45deg, rgba(0, 102, 255, 0.25), rgba(0, 61, 153, 0.2));
+            border: 2px solid rgba(0, 102, 255, 0.5);
+            animation: transcendentWave 1s ease-in-out infinite;
+            position: relative;
+        }
+
+        .grade-info.transcendent::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #0066ff, #00aaff, #0066ff, #003d99);
+            background-size: 300% 300%;
+            border-radius: 12px;
+            z-index: -1;
+            animation: transcendentBorder 2s ease-in-out infinite;
+        }
+
+        .grade-info.transcendent::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+            animation: transcendentScan 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .grade-info.transcendent .grade-color {
+            animation: transcendentSpin 1s linear infinite;
+            box-shadow: 0 0 30px rgba(0, 102, 255, 1);
+            position: relative;
+        }
+
+        .grade-info.transcendent .grade-color::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            animation: transcendentHalo 2s ease-in-out infinite;
+        }
+
+        @keyframes legendaryPulse {
+            0%, 100% { 
+                transform: scale(1); 
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            }
+            50% { 
+                transform: scale(1.02); 
+                box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+            }
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+
+        @keyframes legendaryOrb {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            }
+            50% { 
+                transform: scale(1.2);
+                box-shadow: 0 0 30px rgba(255, 215, 0, 1);
+            }
+        }
+
+        @keyframes mythicFlicker {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+            }
+            25% { 
+                transform: scale(1.01);
+                box-shadow: 0 0 25px rgba(231, 76, 60, 0.7);
+            }
+            75% { 
+                transform: scale(0.99);
+                box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+            }
+        }
+
+        @keyframes mythicSweep {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: -100%; }
+        }
+
+        @keyframes mythicPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 25px rgba(231, 76, 60, 1);
+            }
+            50% { 
+                transform: scale(1.15);
+                box-shadow: 0 0 35px rgba(231, 76, 60, 1);
+            }
+        }
+
+        @keyframes transcendentWave {
+            0%, 100% { 
+                transform: scale(1);
+            }
+            33% { 
+                transform: scale(1.01) rotateX(2deg);
+            }
+            66% { 
+                transform: scale(1.02) rotateX(-2deg);
+            }
+        }
+
+        @keyframes transcendentBorder {
+            0% { 
+                background-position: 0% 50%;
+                box-shadow: 0 0 20px rgba(0, 102, 255, 0.5);
+            }
+            50% { 
+                background-position: 100% 50%;
+                box-shadow: 0 0 40px rgba(0, 102, 255, 0.8);
+            }
+            100% { 
+                background-position: 0% 50%;
+                box-shadow: 0 0 20px rgba(0, 102, 255, 0.5);
+            }
+        }
+
+        @keyframes transcendentScan {
+            0% { 
+                top: 0%; 
+                opacity: 0; 
+            }
+            50% { 
+                top: 50%; 
+                opacity: 1; 
+            }
+            100% { 
+                top: 100%; 
+                opacity: 0; 
+            }
+        }
+
+        @keyframes transcendentSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes transcendentHalo {
+            0%, 100% { 
+                opacity: 0.3;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.8;
+                transform: scale(1.2);
+            }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .stat-number {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .fireworks {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .firework {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: firework 2s ease-out forwards;
+        }
+
+        @keyframes firework {
+            0% { opacity: 1; transform: scale(0); }
+            50% { opacity: 1; transform: scale(2); }
+            100% { opacity: 0; transform: scale(0); }
+        }
+
+        .screen-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="screen-flash" id="screenFlash"></div>
+
+    <div class="game-container" id="gameContainer">
+        <h1>🎁 랜덤재호</h1>
+        
+        <div class="gacha-container">
+            <div class="gacha-box" id="gachaBox" onclick="pullGacha()">📦</div>
+            <p style="font-size: 1.2em; opacity: 0.8;">상자를 클릭하여 뽑기!</p>
+            
+            <div class="result-container" id="resultContainer">
+                <img id="resultImage" class="result-image" src="" alt="결과 이미지">
+                <div id="resultText" class="result-text"></div>
+                <div id="resultGrade" class="result-grade"></div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button class="pull-button" id="pullButton" onclick="pullGacha()">🎲 가챠 뽑기</button>
+            <button class="reset-button" onclick="resetGame()">🔄 초기화</button>
+        </div>
+
+        <div class="probability-info">
+            <h3>📊 등급별 확률</h3>
+            <div class="grade-info transcendent">
+                <div style="display: flex; align-items: center;">
+                    <div class="grade-color transcendent"></div>
+                    <span>얼티밋 재호 (Ultimate Jaeho)</span>
+                </div>
+                <span>0.1%</span>
+            </div>
+            <div class="grade-info mythic">
+                <div style="display: flex; align-items: center;">
+                    <div class="grade-color mythic"></div>
+                    <span>신화 (Mythic)</span>
+                </div>
+                <span>1%</span>
+            </div>
+            <div class="grade-info legendary">
+                <div style="display: flex; align-items: center;">
+                    <div class="grade-color legendary"></div>
+                    <span>레전더리 (Legendary)</span>
+                </div>
+                <span>3%</span>
+            </div>
+            <div class="grade-info">
+                <div style="display: flex; align-items: center;">
+                    <div class="grade-color epic"></div>
+                    <span>에픽 (Epic)</span>
+                </div>
+                <span>7%</span>
+            </div>
+            <div class="grade-info">
+                <div style="display: flex; align-items: center;">
+                    <div class="grade-color rare"></div>
+                    <span>레어 (Rare)</span>
+                </div>
+                <span>10%</span>
+            </div>
+            <div class="grade-info">
+                <div style="display: flex; align-items: center;">
+                    <div class="grade-color uncommon"></div>
+                    <span>언커먼 (Uncommon)</span>
+                </div>
+                <span>35%</span>
+            </div>
+            <div class="grade-info">
+                <div style="display: flex; align-items: center;">
+                    <div class="grade-color common"></div>
+                    <span>커먼 (Common)</span>
+                </div>
+                <span>43.9%</span>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="totalSpins">0</div>
+                <div>총 뽑기</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="transcendentCount">0</div>
+                <div>얼티밋 재호</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="mythicCount">0</div>
+                <div>신화</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="legendaryCount">0</div>
+                <div>레전더리</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="epicCount">0</div>
+                <div>에픽</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="rareCount">0</div>
+                <div>레어</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="fireworks" id="fireworks"></div>
+
+    <script>
+        const grades = {
+            transcendent: {
+                name: "얼티밋 재호",
+                probability: 33,
+                color: "#0066ff",
+                images: ["transcendent1.jpg", "transcendent2.png"]
+            },
+            mythic: {
+                name: "신화",
+                probability: 33,
+                color: "#e74c3c",
+                images: ["mythic1.jpg", "mythic2.png"]
+            },
+            legendary: {
+                name: "레전더리",
+                probability: 34,
+                color: "#ffd700",
+                images: ["legendary1.jpg", "legendary2.png"]
+            },
+            epic: {
+                name: "에픽",
+                probability: 0,
+                color: "#9b59b6",
+                images: ["epic1.jpg", "epic2.png"]
+            },
+            rare: {
+                name: "레어",
+                probability: 0,
+                color: "#3498db",
+                images: ["rare1.jpg", "rare2.png"]
+            },
+            uncommon: {
+                name: "언커먼",
+                probability: 0,
+                color: "#2ecc71",
+                images: ["uncommon1.jpg", "uncommon2.png"]
+            },
+            common: {
+                name: "커먼",
+                probability: 0,
+                color: "#95a5a6",
+                images: ["common1.jpg", "common2.png"]
+            }
+        };
+
+        let stats = {
+            total: 0,
+            transcendent: 0,
+            mythic: 0,
+            legendary: 0,
+            epic: 0,
+            rare: 0,
+            uncommon: 0,
+            common: 0
+        };
+
+        function getRandomGrade() {
+            const random = Math.random() * 100;
+            let cumulative = 0;
+            
+            for (const [key, grade] of Object.entries(grades)) {
+                cumulative += grade.probability;
+                if (random <= cumulative) {
+                    return key;
+                }
+            }
+            return 'common';
+        }
+
+        function getRandomImage(gradeKey) {
+            const grade = grades[gradeKey];
+            const randomIndex = Math.floor(Math.random() * grade.images.length);
+            return grade.images[randomIndex];
+        }
+
+        function createFallbackImage(color, text) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 180;
+            canvas.height = 180;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 180, 180);
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, 90, 90);
+            
+            return canvas.toDataURL();
+        }
+
+        function createFireworks(count, colors) {
+            const fireworksContainer = document.getElementById('fireworks');
+            
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const firework = document.createElement('div');
+                    firework.className = 'firework';
+                    firework.style.left = Math.random() * window.innerWidth + 'px';
+                    firework.style.top = Math.random() * window.innerHeight + 'px';
+                    firework.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    fireworksContainer.appendChild(firework);
+                    
+                    setTimeout(() => {
+                        firework.remove();
+                    }, 2000);
+                }, i * 100);
+            }
+        }
+
+        function applySpecialEffects(gradeKey) {
+            const screenFlash = document.getElementById('screenFlash');
+
+            switch(gradeKey) {
+                case 'transcendent':
+                    screenFlash.style.background = 'radial-gradient(circle, rgba(0, 102, 255, 0.8) 0%, transparent 70%)';
+                    screenFlash.style.opacity = '1';
+                    document.body.style.background = 'linear-gradient(135deg, #0066ff 0%, #003d99 100%)';
+                    createFireworks(30, ['#0066ff', '#00aaff', '#ffffff']);
+                    
+                    setTimeout(() => {
+                        document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                        screenFlash.style.opacity = '0';
+                    }, 5000);
+                    break;
+
+                case 'mythic':
+                    screenFlash.style.background = 'radial-gradient(circle, rgba(231, 76, 60, 0.6) 0%, transparent 70%)';
+                    screenFlash.style.opacity = '1';
+                    document.body.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                    createFireworks(20, ['#e74c3c', '#ff6b6b', '#ffffff']);
+                    
+                    setTimeout(() => {
+                        document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                        screenFlash.style.opacity = '0';
+                    }, 4000);
+                    break;
+
+                case 'legendary':
+                    screenFlash.style.background = 'radial-gradient(circle, rgba(255, 215, 0, 0.4) 0%, transparent 70%)';
+                    screenFlash.style.opacity = '1';
+                    document.body.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)';
+                    createFireworks(15, ['#ffd700', '#ffed4e', '#ffffff']);
+                    
+                    setTimeout(() => {
+                        document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                        screenFlash.style.opacity = '0';
+                    }, 3000);
+                    break;
+
+                case 'epic':
+                    createFireworks(8, ['#9b59b6', '#8e44ad', '#ffffff']);
+                    break;
+
+                case 'rare':
+                   createFireworks(5, ['#3498db', '#2980b9']);
+                   break;
+           }
+       }
+
+       function updateStatsDisplay() {
+           document.getElementById('totalSpins').textContent = stats.total;
+           document.getElementById('transcendentCount').textContent = stats.transcendent;
+           document.getElementById('mythicCount').textContent = stats.mythic;
+           document.getElementById('legendaryCount').textContent = stats.legendary;
+           document.getElementById('epicCount').textContent = stats.epic;
+           document.getElementById('rareCount').textContent = stats.rare;
+       }
+
+       function pullGacha() {
+           const gachaBox = document.getElementById('gachaBox');
+           const pullButton = document.getElementById('pullButton');
+           const resultContainer = document.getElementById('resultContainer');
+           const resultImage = document.getElementById('resultImage');
+           const resultText = document.getElementById('resultText');
+           const resultGrade = document.getElementById('resultGrade');
+
+           pullButton.disabled = true;
+           pullButton.textContent = '🎲 뽑는 중...';
+           resultContainer.classList.remove('show');
+           gachaBox.classList.add('opening');
+
+           setTimeout(() => {
+               const resultGradeKey = getRandomGrade();
+               const grade = grades[resultGradeKey];
+               const imagePath = getRandomImage(resultGradeKey);
+
+               stats.total++;
+               stats[resultGradeKey]++;
+
+               resultImage.src = imagePath;
+               resultImage.className = `result-image ${resultGradeKey}`;
+               
+               resultImage.onerror = function() {
+                   this.src = createFallbackImage(grade.color, grade.name);
+               };
+
+               resultText.textContent = `${grade.name} 등급!`;
+               resultText.style.color = grade.color;
+               
+               resultGrade.textContent = grade.name;
+               resultGrade.className = `result-grade ${resultGradeKey}`;
+
+               resultContainer.classList.add('show');
+               updateStatsDisplay();
+               applySpecialEffects(resultGradeKey);
+
+               setTimeout(() => {
+                   gachaBox.classList.remove('opening');
+               }, 1000);
+               
+               pullButton.disabled = false;
+               pullButton.textContent = '🎲 재호 뽑기';
+           }, 2000);
+       }
+
+       function resetGame() {
+           stats = {
+               total: 0,
+               transcendent: 0,
+               mythic: 0,
+               legendary: 0,
+               epic: 0,
+               rare: 0,
+               uncommon: 0,
+               common: 0
+           };
+           
+           document.getElementById('resultContainer').classList.remove('show');
+           updateStatsDisplay();
+       }
+   </script>
+</body>
+</html>
